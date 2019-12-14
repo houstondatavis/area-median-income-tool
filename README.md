@@ -1,3 +1,8 @@
-todo:
+depends on: jetpack
 
-add libraries, use packrat
+use jetpack to install dependencies. `jetpack::install()`
+
+
+notes on methodology:
+
+We're using 4 as the average number of persons in a household

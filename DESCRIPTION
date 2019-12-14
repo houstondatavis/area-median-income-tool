@@ -1,0 +1,6 @@
+Package: app
+Imports:
+    shiny,
+    rgdal,
+    leaflet,
+    magrittr
