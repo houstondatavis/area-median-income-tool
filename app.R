@@ -33,21 +33,32 @@ ui <- fluidPage(
 server <- function(input, output) {
    
   blockgroups <- rgdal::readOGR('data/BlockGroupsHC/BlockGroupsHC.shp') %>%
-  spTransform(CRSobj = CRS("+init=epsg:4326"))
+    spTransform(CRSobj = CRS("+init=epsg:4326"))
+  
+  ami_data <- read.csv('data/income_ami.csv')
+  
+  blockgroups_with_ami_data <- merge(
+    blockgroups,
+    ami_data,
+    by.x = "GEOID",
+    by.y = "GEOID"
+  )
   
   output$mymap <- renderLeaflet({
-    leaflet(blockgroups) %>%
+    leaflet(blockgroups_with_ami_data) %>%
     addTiles() %>%
-    addPolygons(color = "#CCCCCC", 
-               fillColor = "#FFFFFF",
-               opacity = 1.0,
-               fillOpacity = 0.5,
-               weight = 1,
-               smoothFactor = 0.5,
-               highlightOptions = highlightOptions(
-                 color = "green",
-                 weight = 2,
-                 bringToFront = TRUE
+    addPolygons(
+                color = "#CCCCCC", 
+                fillColor = ~colorQuantile("YlOrRd", pct_below_eli)(pct_below_eli),
+                opacity = 1.0,
+                fillOpacity = 0.5,
+                weight = 1,
+                smoothFactor = 0.5,
+                highlightOptions = highlightOptions(
+                  color = "green",
+                  fillColor = "green",
+                  weight = 2,
+                  bringToFront = TRUE
                 )
               )
    })
