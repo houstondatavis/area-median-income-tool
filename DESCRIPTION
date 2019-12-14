@@ -3,4 +3,7 @@ Imports:
     shiny,
     rgdal,
     leaflet,
-    magrittr
+    magrittr,
+    geojsonio,
+    spdplyr,
+    rmapshaper
