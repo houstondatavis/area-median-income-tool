@@ -148,7 +148,7 @@ server <- function(input, output, session) {
     selected <- blockgroups_with_ami_data[point,]
     print("Selected:")
     print(selected@data[38:42])
-    selected@data
+    selected
     
   })
 
@@ -159,28 +159,38 @@ server <- function(input, output, session) {
   #observe({
     output$pop_plot <- renderPlot({
       req(input$mymap_shape_click)
-      barplot(as.numeric(selectedBG()[38:42]))
+      barplot(as.numeric(selectedBG()@data[38:42]))
     })
   #})
   
   #observe({
     output$pop_numbers <- renderText({
       req(input$mymap_shape_click)
-      selectedBG()[["NAMELSAD"]]
+      selectedBG()@data[["NAMELSAD"]]
     })
   #})
   output$selected_geoid <- renderText({
     req(input$mymap_shape_click)
-    selectedBG()[["GEOID"]]
+    selectedBG()@data[["GEOID"]]
   })
   output$mymap <- renderLeaflet(mymap)
 
   observeEvent(input$limitInput, {
-
     leafletProxy("mymap", session) %>%
       hideGroup(ami_groups) %>%
       showGroup(selectedLimit())
-   })
+  })
+  
+  observeEvent(input$mymap_shape_click, {
+    leafletProxy("mymap", session) %>%
+      clearGroup("selected") %>%
+      addPolygons(
+        color = "green",
+        weight = 4,
+        data = selectedBG(),
+        group = "selected"
+      )
+  })
 }
 
 # Run the application 
