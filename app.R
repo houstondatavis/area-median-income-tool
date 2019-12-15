@@ -20,6 +20,8 @@ ui <- fluidPage(
    # Sidebar with a slider input for number of bins 
    sidebarLayout(
       sidebarPanel(
+        textOutput("pop_numbers"),
+        plotOutput("pop_plot")
       ),
       
       # Show a plot of the generated distribution
@@ -40,9 +42,47 @@ server <- function(input, output) {
   blockgroups_with_ami_data <- merge(
     blockgroups,
     ami_data,
-    by.x = "GEOID",
-    by.y = "GEOID"
+    by = "GEOID"
   )
+  
+  #bg_js <- geojsonio::geojson_json(blockgroups_with_ami_data)
+  
+ 
+  observeEvent(input$mymap_shape_click, {
+    
+    click <- input$mymap_shape_click
+    
+    if(is.null(click))
+      return()   
+    
+    #pulls lat and lon from shiny click event
+    lat <- click$lat
+    lon <- click$lng
+    
+    #puts lat and lon for click point into its own data frame
+    coords <- as.data.frame(cbind(lon, lat))
+    
+    #converts click point coordinate data frame into SP object, sets CRS
+    point <- SpatialPoints(coords)
+    proj4string(point) <- CRS("+init=epsg:4326")
+    print("Point:")
+    print(point)
+
+    #retrieves country in which the click point resides, set CRS for country
+    selected <- blockgroups_with_ami_data[sptestcoords,]
+    #print("Selected:")
+    #proj4string(selected) <- CRS("+init=epsg:4326")
+    #print(selected)
+    
+    output$pop_numbers <- renderText({
+      selected@data[["NAMELSAD"]]
+    })
+    
+    output$pop_plot <- renderPlot({
+      barplot(as.numeric(selected@data[38:42]))
+    })
+    
+  })
   
   output$mymap <- renderLeaflet({
     leaflet(blockgroups_with_ami_data) %>%
@@ -63,7 +103,7 @@ server <- function(input, output) {
               )
    })
   
-  #observe()
+
 }
 
 # Run the application 
