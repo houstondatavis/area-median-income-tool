@@ -20,7 +20,19 @@ ui <- fluidPage(
    # Sidebar with a slider input for number of bins 
    sidebarLayout(
       sidebarPanel(
+        selectInput("limitInput",
+          label = h4("Limit"),
+          choices = c(
+            "Extremely Low Income" = "pct_below_eli",
+            "50%" = "pct_below_ami50",
+            "80%" = "pct_below_ami80",
+            "100%" = "pct_below_ami100",
+            "120%" = "pct_below_ami120"
+          ),
+          selected = "Extremely Low Income"
+        ),
         textOutput("pop_numbers"),
+        textOutput("selected_ami"),
         plotOutput("pop_plot")
       ),
       
@@ -31,9 +43,11 @@ ui <- fluidPage(
    )
 )
 
+
+
 # Define server logic required to draw a histogram
-server <- function(input, output) {
-   
+server <- function(input, output, session) {
+
   blockgroups <- rgdal::readOGR('data/BlockGroupsHC/BlockGroupsHC.shp') %>%
     spTransform(CRSobj = CRS("+init=epsg:4326"))
   
@@ -45,13 +59,75 @@ server <- function(input, output) {
     by = "GEOID"
   )
   
+  ami_groups <- c("pct_below_eli", "pct_below_ami50", "pct_below_ami80", "pct_below_ami100", "pct_below_ami120")
+  highlighted_block_options <- highlightOptions(
+    color = "green",
+    fillColor = "green",
+    weight = 2,
+    bringToFront = TRUE
+  )
+  mymap <- leaflet(blockgroups_with_ami_data) %>%
+    addTiles() %>%
+    setView(-95.4757516, 29.8133807, zoom = 10) %>%
+    addPolygons(
+      color = "#CCCCCC",
+      opacity = 1.0,
+      fillOpacity = 0.75,
+      weight = 1,
+      smoothFactor = 0.5,
+      highlightOptions = highlighted_block_options,
+      group = "pct_below_eli",
+      fillColor = ~colorQuantile("YlOrRd", pct_below_eli)(pct_below_eli)
+    ) %>%
+    addPolygons(
+      color = "#CCCCCC",
+      opacity = 1.0,
+      fillOpacity = 0.75,
+      weight = 1,
+      smoothFactor = 0.5,
+      highlightOptions = highlighted_block_options,
+      group = "pct_below_ami50",
+      fillColor = ~colorQuantile("YlOrRd", pct_below_ami50)(pct_below_ami50)
+    ) %>%
+    addPolygons(
+      color = "#CCCCCC",
+      opacity = 1.0,
+      fillOpacity = 0.75,
+      weight = 1,
+      smoothFactor = 0.5,
+      highlightOptions = highlighted_block_options,
+      group = "pct_below_ami80",
+      fillColor = ~colorQuantile("YlOrRd", pct_below_ami80)(pct_below_ami80)
+    ) %>%
+    addPolygons(
+      color = "#CCCCCC",
+      opacity = 1.0,
+      fillOpacity = 0.75,
+      weight = 1,
+      smoothFactor = 0.5,
+      highlightOptions = highlighted_block_options,
+      group = "pct_below_ami100",
+      fillColor = ~colorQuantile("YlOrRd", pct_below_ami100)(pct_below_ami100)
+    ) %>%
+    addPolygons(
+      color = "#CCCCCC",
+      opacity = 1.0,
+      fillOpacity = 0.75,
+      weight = 1,
+      smoothFactor = 0.5,
+      highlightOptions = highlighted_block_options,
+      group = "pct_below_ami120",
+      fillColor = ~colorQuantile("YlOrRd", pct_below_ami120)(pct_below_ami120)
+    ) %>%
+    hideGroup(ami_groups)
+
   #bg_js <- geojsonio::geojson_json(blockgroups_with_ami_data)
   selectedBG <- reactive({
     
     click <- input$mymap_shape_click
     
     if(is.null(click))
-      return()   
+      return()
     
     #pulls lat and lon from shiny click event
     lat <- click$lat
@@ -74,39 +150,33 @@ server <- function(input, output) {
     selected@data
     
   })
- 
-  observe({
+
+  selectedLimit <- reactive({
+    input$limitInput
+  })
+  
+  #observe({
     output$pop_plot <- renderPlot({
+      req(input$mymap_shape_click)
       barplot(as.numeric(selectedBG()[38:42]))
     })
-  })
-  observe({
+  #})
+  
+  #observe({
     output$pop_numbers <- renderText({
+      req(input$mymap_shape_click)
       selectedBG()[["NAMELSAD"]]
     })
-  })
-    
+  #})
   
-  output$mymap <- renderLeaflet({
-    leaflet(blockgroups_with_ami_data) %>%
-    addTiles() %>%
-    addPolygons(
-                color = "#CCCCCC", 
-                fillColor = ~colorQuantile("YlOrRd", pct_below_eli)(pct_below_eli),
-                opacity = 1.0,
-                fillOpacity = 0.5,
-                weight = 1,
-                smoothFactor = 0.5,
-                highlightOptions = highlightOptions(
-                  color = "green",
-                  fillColor = "green",
-                  weight = 2,
-                  bringToFront = TRUE
-                )
-              )
-   })
-  
+  output$mymap <- renderLeaflet(mymap)
 
+  observeEvent(input$limitInput, {
+
+    leafletProxy("mymap", session) %>%
+      hideGroup(ami_groups) %>%
+      showGroup(selectedLimit())
+   })
 }
 
 # Run the application 
