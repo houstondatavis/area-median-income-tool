@@ -46,9 +46,7 @@ server <- function(input, output) {
   )
   
   #bg_js <- geojsonio::geojson_json(blockgroups_with_ami_data)
-  
- 
-  observeEvent(input$mymap_shape_click, {
+  selectedBG <- reactive({
     
     click <- input$mymap_shape_click
     
@@ -67,22 +65,27 @@ server <- function(input, output) {
     proj4string(point) <- CRS("+init=epsg:4326")
     print("Point:")
     print(point)
-
+    
+    
     #retrieves country in which the click point resides, set CRS for country
-    selected <- blockgroups_with_ami_data[sptestcoords,]
-    #print("Selected:")
-    #proj4string(selected) <- CRS("+init=epsg:4326")
-    #print(selected)
-    
-    output$pop_numbers <- renderText({
-      selected@data[["NAMELSAD"]]
-    })
-    
-    output$pop_plot <- renderPlot({
-      barplot(as.numeric(selected@data[38:42]))
-    })
+    selected <- blockgroups_with_ami_data[point,]
+    print("Selected:")
+    print(selected@data[38:42])
+    selected@data
     
   })
+ 
+  observe({
+    output$pop_plot <- renderPlot({
+      barplot(as.numeric(selectedBG()[38:42]))
+    })
+  })
+  observe({
+    output$pop_numbers <- renderText({
+      selectedBG()[["NAMELSAD"]]
+    })
+  })
+    
   
   output$mymap <- renderLeaflet({
     leaflet(blockgroups_with_ami_data) %>%
